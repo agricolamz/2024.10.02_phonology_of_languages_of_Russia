@@ -1,0 +1,93 @@
+---
+format: 
+  beamer:
+    theme: Singapore
+    mainfont: Brill
+    monofont: Iosevka
+    df-print: kable
+    pdf-engine: xelatex
+    cite-method: natbib
+    classoption: t
+    header-includes: |
+       \setbeamertemplate{footline}[page number]
+       \usepackage{caption}
+       \captionsetup[figure]{labelformat=empty}
+       \captionsetup[subfigure]{labelformat=empty}
+       \setbeamercolor{alerted text}{fg=teal}
+       \newcommand{\theHtable}{\thetable}
+title: Phonological diversity of languages of Russia
+subtitle: guest lecture in the course 'Languages of Russia and the former SU'
+lang: en
+author: George Moroz
+institute: Linguistic Convergence Laboratory, HSE
+date: 10/02/2024
+date-format: long
+bibliography: bibliography.bib
+execute: 
+  echo: false
+  warning: false
+fig-align: center  
+urlcolor: teal
+citecolor: teal
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| include: false
+
+# setwd("/home/agricolamz/work/materials/2024.10.02_phonology_of_languages_of_Russia")
+library(tidyverse)
+library(lingtypology)
+
+theme_set(theme_minimal()+theme(text = element_text(size = 16)))
+```
+
+## {}
+
+\vfill
+\centering \LARGE
+\alert{Give a man a fish, and you feed him for a day}
+
+\alert{Teach a man to fish, and you feed him for a lifetime}
+
+\vfill
+
+# Languages of Russia
+
+## Glottolog
+
+Glottolog 5.0 --- Comprehensive reference information for the world's languages. [@glottolog5] \pause
+
+<https://glottolog.org/glottolog/language.map.html?country=RU>
+
+```{r}
+#| out-width: 100%
+knitr::include_graphics("images/01_map.png")
+```
+
+## Language families
+
+```{r}
+glottolog |> 
+  filter(str_detect(countries, "RU"),
+         level == "language",
+         affiliation != "Bookkeeping") |> 
+  mutate(family = str_extract(affiliation, "^[\\w-]*"),
+         family = str_remove(family, ",")) ->
+  languages_of_Russia
+```
+
+According to Glottolog there are `r nrow(languages_of_Russia)` languages that belong to `r languages_of_Russia |> distinct(family) |> nrow()` language families. \pause
+
+However, this list includes     
+
+- some extinct languages, e. g. Sirenik Yupik (Eskimo–Aleut), Kott (Yeniseian), Yugh (Yeniseian), Chuvan (Yukaghir), Mator (Uralic), South Itelmen (Chukotko-Kamchatkan), Eastern Itelmen (Chukotko-Kamchatkan) and others...
+- minority languages spoken outside Russia, e. g. Svan (Kartvelian), Oroqen (Tungusic) and others...
+- Russian Sign Language
+
+# Phonological systems
+
+# Are there any 
+
+# References
