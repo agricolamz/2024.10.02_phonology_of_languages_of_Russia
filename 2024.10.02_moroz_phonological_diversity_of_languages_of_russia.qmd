@@ -1,22 +1,24 @@
 ---
 format: 
-  beamer:
-    theme: Singapore
-    mainfont: Brill
-    monofont: Iosevka
-    df-print: kable
-    pdf-engine: xelatex
-    cite-method: natbib
-    classoption: t
-    header-includes: |
-       \setbeamertemplate{footline}[page number]
-       \usepackage{caption}
-       \captionsetup[figure]{labelformat=empty}
-       \captionsetup[subfigure]{labelformat=empty}
-       \setbeamercolor{alerted text}{fg=teal}
-       \newcommand{\theHtable}{\thetable}
+ beamer:
+  theme: Singapore
+  mainfont: Brill
+  monofont: Iosevka
+  df-print: kable
+  pdf-engine: xelatex
+  cite-method: natbib
+  classoption: t
+  header-includes: |
+    \setbeamertemplate{footline}[page number]
+    \usepackage{caption}
+    \captionsetup[figure]{labelformat=empty}
+    \captionsetup[subfigure]{labelformat=empty}
+    \setbeamercolor{alerted text}{fg=teal}
+    \newcommand{\theHtable}{\thetable}
 title: Phonological diversity of languages of Russia
-subtitle: guest lecture in the course 'Languages of Russia and the former SU'
+subtitle: |
+ guest lecture in the course 'Languages of Russia and the former SU'
+ ![](images/00_qrcode.png){width=35%}
 lang: en
 author: George Moroz
 institute: Linguistic Convergence Laboratory, HSE
@@ -24,13 +26,13 @@ date: 10/02/2024
 date-format: long
 bibliography: bibliography.bib
 execute: 
-  echo: false
-  warning: false
-fig-align: center  
+ echo: false
+ warning: false
+fig-align: center 
 urlcolor: teal
 citecolor: teal
 editor_options: 
-  chunk_output_type: console
+ chunk_output_type: console
 ---
 
 ```{r}
@@ -43,13 +45,32 @@ library(lingtypology)
 theme_set(theme_minimal()+theme(text = element_text(size = 16)))
 ```
 
+## About me
+
+- quantitative linguistics
+- variation
+- phonetics
+- Nakh-Daghestanian languages
+- Northwest Caucasian languages
+- Slavic languages
+
 ## {}
 
 \vfill
-\centering \LARGE
+\centering \Large
 \alert{Give a man a fish, and you feed him for a day}
 
-\alert{Teach a man to fish, and you feed him for a lifetime}
+\alert{Teach a man to fish, and you feed him for a lifetime} \pause
+
+```{r}
+#| fig-align: center
+#| out-width: 60%
+
+qrcode::qr_code("https://github.com/agricolamz/2024.10.02_phonology_of_languages_of_Russia/blob/main/2024.10.02_moroz_phonological_diversity_of_languages_of_russia.qmd") |> 
+ plot()
+```
+
+[tinyurl.com/3by8xurp](https://tinyurl.com/3by8xurp)
 
 \vfill
 
@@ -69,24 +90,245 @@ knitr::include_graphics("images/01_map.png")
 ## Language families
 
 ```{r}
+#| eval: false
+
 glottolog |> 
-  filter(str_detect(countries, "RU"),
-         level == "language",
-         affiliation != "Bookkeeping") |> 
-  mutate(family = str_extract(affiliation, "^[\\w-]*"),
-         family = str_remove(family, ",")) ->
-  languages_of_Russia
+ filter(str_detect(countries, "RU"),
+     level == "language",
+     affiliation != "Bookkeeping") |> 
+ mutate(family = str_extract(affiliation, "^[\\w-]*"),
+        family = str_remove(family, ","),
+        family = if_else(family == "Mongolic-Khitan", "Mongolic", family)) ->
+ languages_of_Russia
+
+links <- str_c("https://glottolog.org/resource/languoid/id/", languages_of_Russia$glottocode)
+
+endangerment <- map_chr(links, function(link){
+ read_html(link) |> 
+  html_nodes("div#acc-Endangerment.accordion-body.collapse.in div.accordion-inner dl.dl-horizontal dd") |> 
+  html_text() ->
+  result
+ result[1] 
+})
+
+languages_of_Russia |> 
+ mutate(endangerment = endangerment) |> 
+ write_csv("data/languages_of_Russia.csv", na = "")
+
+# then I manually annotated languages for removal and renamed file to languages_of_Russia_annotated
 ```
 
-According to Glottolog there are `r nrow(languages_of_Russia)` languages that belong to `r languages_of_Russia |> distinct(family) |> nrow()` language families. \pause
+```{r}
+languages_of_Russia <- read_csv("data/languages_of_Russia.csv")
 
-However, this list includes     
+languages_of_Russia |> 
+ filter(endangerment == "extinct") |> 
+ nrow() ->
+ extinct
 
-- some extinct languages, e. g. Sirenik Yupik (Eskimo–Aleut), Kott (Yeniseian), Yugh (Yeniseian), Chuvan (Yukaghir), Mator (Uralic), South Itelmen (Chukotko-Kamchatkan), Eastern Itelmen (Chukotko-Kamchatkan) and others...
-- minority languages spoken outside Russia, e. g. Svan (Kartvelian), Oroqen (Tungusic) and others...
-- Russian Sign Language
+languages_of_Russia |> 
+  filter(endangerment != "extinct",
+         my_annotation == "remove") |> 
+  nrow() ->
+  not_in_russia
+```
+
+
+According to Glottolog there are `r nrow(languages_of_Russia)` languages in Russia that belong to `r languages_of_Russia |> distinct(family) |> nrow()` language families. \pause
+
+However, this list 
+
+- includes `r extinct` extinct languages, e. g. South Itelmen (Chukotko-Kamchatkan), Mednyj Aleut (Eskimo-Aleut), Old Russian (Indo-European), Arman (Tungusic), Bolgarian (Turkic), Akkala Saami (Uralic), Yugh (Yeniseian), Chuvantsy (Yukaghir) and others... \pause
+- includes `r not_in_russia` minority languages spoken outside Russia, e. g. Abkhaz (Abkhaz-Adyge), Sinte-Manus Romani (Indo-European), Georgian (Kartvelian), Korean (Koreanic), China Buriat (Mongolic-Khitan), Mandarin Chinese (Sino-Tibetan), Kazakh (Turkic), Kilen(Tungusic), Finnish (Uralic) and others... \pause
+- Russian Sign Language \pause
+- lacks Assyrian Neo-Aramaic (Urmi dialect)
+
+## Language families
+
+```{r}
+languages_of_Russia |> 
+  filter(str_detect(my_annotation, "remove", negate = TRUE) |
+           is.na(my_annotation)) ->
+  languages_of_Russia
+
+languages_of_Russia |> 
+  count(family, sort = TRUE) |> 
+  mutate(id = 1:n()) |> 
+  relocate(id, .before = family) |> 
+  rename(` ` = id)
+```
+
+## Language families
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  select(language, family) ->
+  df_for_map
+
+map.feature(languages = df_for_map$language,
+            features = df_for_map$family,
+            tile = "Esri.WorldGrayCanvas", 
+            minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/02_nd.png")
+```
+
+
+## Nakh-Daghestanian
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Nakh-Daghestanian") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/02_nd.png")
+```
+
+## Abkhaz-Adyge
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Abkhaz-Adyge") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/08_abkhaz_adyge.png")
+```
+
+## Uralic
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Uralic") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/03_uralic.png")
+```
+
+## Turkic
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Turkic") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/04_turkic.png")
+```
+
+## Indo-European
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Indo-European") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/06_indo_european.png")
+```
+
+## Tungusic
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Tungusic") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/05_tungusic.png")
+```
+
+## Chukotko-Kamchatkan
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Chukotko-Kamchatkan") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/07_chukotko_kamchatkan.png")
+```
+
+## Eskimo-Aleut
+
+```{r}
+#| eval: false
+
+languages_of_Russia |> 
+  filter(family == "Eskimo-Aleut") |> 
+  pull(language) |> 
+  map.feature(tile = "Esri.WorldGrayCanvas", 
+              minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/09_eskimo_aleut.png")
+```
 
 # Phonological systems
+
+## Phonological inventories databases
+
+- 
 
 # Are there any 
 
