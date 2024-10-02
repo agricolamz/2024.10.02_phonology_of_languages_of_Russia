@@ -41,8 +41,9 @@ editor_options:
 # setwd("/home/agricolamz/work/materials/2024.10.02_phonology_of_languages_of_Russia")
 library(tidyverse)
 library(lingtypology)
+library(tidytext)
 
-theme_set(theme_minimal()+theme(text = element_text(size = 16)))
+theme_set(theme_minimal()+theme(legend.position = "bottom", text = element_text(size = 16)))
 ```
 
 ## About me
@@ -143,14 +144,16 @@ However, this list
 - Russian Sign Language \pause
 - lacks Assyrian Neo-Aramaic (Urmi dialect)
 
-## Language families
-
 ```{r}
 languages_of_Russia |> 
   filter(str_detect(my_annotation, "remove", negate = TRUE) |
            is.na(my_annotation)) ->
   languages_of_Russia
+```
 
+## Languages (`r nrow(languages_of_Russia)`)
+
+```{r}
 languages_of_Russia |> 
   count(family, sort = TRUE) |> 
   mutate(id = 1:n()) |> 
@@ -176,7 +179,7 @@ map.feature(languages = df_for_map$language,
 ```{r}
 #| out-width: 105%
 
-knitr::include_graphics("images/02_nd.png")
+knitr::include_graphics("images/10_by_family_map.png")
 ```
 
 
@@ -324,12 +327,118 @@ languages_of_Russia |>
 knitr::include_graphics("images/09_eskimo_aleut.png")
 ```
 
-# Phonological systems
+# Phonological inventories
 
 ## Phonological inventories databases
 
-- 
+- [PHOIBLE](https://phoible.org/) [@phoible]
+- [The Database of Eurasian Phonological Inventories](https://eurphon.info/)  [@eurasianphonology]
 
-# Are there any 
+```{r}
+eurasianphonology |>   
+  mutate(iso = if_else(name == "Barwar Neo-Aramaic", NA, iso),
+         iso = if_else(name == "Arbel Neo-Aramaic", "aii", iso)) |> 
+  select(-language) |> 
+  unnest_longer(id) ->
+  euraphon
+
+languages_of_Russia |> 
+  distinct(language, iso, family) |> 
+  left_join(euraphon, relationship = "many-to-many") |> 
+  mutate(present = if_else(is.na(name), "absent", "present")) |> 
+  filter(str_detect(segments, "[0-9]", negate = TRUE)) ->
+  merge_with_eurasianphonology
+
+merge_with_eurasianphonology |>
+  filter(!is.na(id)) |> 
+  group_by(iso) |> 
+  slice_sample(n = 1) |> 
+  pull(id) ->
+  id_from_eurasianphonology
+
+merge_with_eurasianphonology |> 
+  distinct(language, present) ->
+  df_for_map
+
+df_for_map |> 
+  filter(present == "present") |> 
+  nrow() ->
+  present
+
+merge_with_eurasianphonology |> 
+  filter(id %in% id_from_eurasianphonology) ->
+  merge_with_eurasianphonology
+```
+
+## The Database of Eurasian Phonological Inventories (`r present` out of `r nrow(df_for_map)` languages)
+
+```{r}
+#| eval: false
+map.feature(languages = df_for_map$language,
+            features = df_for_map$present,
+            tile = "Esri.WorldGrayCanvas", 
+            minimap = TRUE)
+```
+
+```{r}
+#| out-width: 105%
+
+knitr::include_graphics("images/11_eurasianphonology.png")
+```
+
+## Number of vowel and consonants
+
+```{r}
+merge_with_eurasianphonology |> 
+  filter(!is.na(name)) |> 
+  count(language, segment_type, family, sort = TRUE) |> 
+  pivot_wider(names_from = segment_type, values_from = n) |> 
+  ggplot(aes(consonant, vowel, color = family, label = language))+
+  geom_point()+
+  ggrepel::geom_text_repel()+
+  labs(color = NULL)
+```
+
+## Typical consonants ([tf--idf](https://tinyurl.com/mcdf46g) measure)
+
+```{r dev='cairo_pdf'}
+merge_with_eurasianphonology |> 
+  filter(!is.na(name),
+         segment_type == "consonant") |> 
+  count(segments, family, sort = TRUE) |> 
+  bind_tf_idf(segments, family, n) |> 
+  arrange(desc(tf_idf)) |> 
+  group_by(family) |> 
+  slice_max(order_by = tf_idf, n = 5) |> 
+  mutate(segments = reorder_within(segments, n, family)) |> 
+  ggplot(aes(segments, n, fill = family)) +
+  geom_bar(stat="identity") +
+  facet_wrap(~ family, scales = "free") +
+  coord_flip() +
+  scale_x_reordered() +
+  labs(x = NULL, y = NULL)+
+  theme(legend.position = "none")
+```
+
+## Typical vowels ([tf--idf](https://tinyurl.com/mcdf46g) measure)
+
+```{r dev='cairo_pdf'}
+merge_with_eurasianphonology |> 
+  filter(!is.na(name),
+         segment_type == "vowel") |> 
+  count(segments, family, sort = TRUE) |> 
+  bind_tf_idf(segments, family, n) |> 
+  arrange(desc(tf_idf)) |> 
+  group_by(family) |> 
+  slice_max(order_by = tf_idf, n = 5) |> 
+  mutate(segments = reorder_within(segments, n, family)) |> 
+  ggplot(aes(segments, n, fill = family)) +
+  geom_bar(stat="identity") +
+  facet_wrap(~ family, scales = "free") +
+  coord_flip() +
+  scale_x_reordered() +
+  labs(x = NULL, y = NULL)+
+  theme(legend.position = "none")
+```
 
 # References
